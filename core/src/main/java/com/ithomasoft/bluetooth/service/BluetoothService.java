@@ -9,6 +9,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
+import com.ithomasoft.bluetooth.Bluetooth;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
