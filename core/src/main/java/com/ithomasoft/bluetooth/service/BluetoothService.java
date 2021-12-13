@@ -9,17 +9,14 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
-import com.ithomasoft.bluetooth.Bluetooth;
-
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
-/**
- * 连接蓝牙设备
- */
 public class BluetoothService {
     private static final String TAG = "BluetoothService";
 
@@ -200,6 +197,7 @@ public class BluetoothService {
 
             while (mState != Bluetooth.CONNECT_STATE_CONNECTED && isRunning) {
                 try {
+
                     socket = mBluetoothServerSocket.accept();
                 } catch (IOException ex) {
                     break;
@@ -247,8 +245,8 @@ public class BluetoothService {
      * 与远程蓝牙设备进行连接
      */
     public class ConnectThread extends Thread {
-        private  BluetoothSocket mmSocket;
-        private  BluetoothDevice mmDevice;
+        private BluetoothSocket mmSocket;
+        private BluetoothDevice mmDevice;
 
         public ConnectThread(BluetoothDevice device) {
             BluetoothSocket tempSocket = null;
@@ -313,6 +311,8 @@ public class BluetoothService {
         private final InputStream mmInputStream;
         private final OutputStream mmOutputStream;
 
+        private final BufferedReader reader;
+
         public ConnectedThread(BluetoothSocket socket) {
             mmSocket = socket;
 
@@ -329,17 +329,19 @@ public class BluetoothService {
 
             mmInputStream = inputStream;
             mmOutputStream = outputStream;
+            reader = new BufferedReader(new InputStreamReader(mmInputStream));
         }
 
         @Override
         public void run() {
-            byte[] bufferDatas = new byte[1024];
             //读取到的字节数
-            int bytes;
             while (true) {
                 try {
-                    bytes = mmInputStream.read(bufferDatas);
-                    mHandler.obtainMessage(Bluetooth.MESSAGE_STATE_READ, bytes, -1, bufferDatas).sendToTarget();
+                    if (reader.ready()) {
+                        String result = reader.readLine();
+                        mHandler.obtainMessage(Bluetooth.MESSAGE_STATE_READ, result.length(), -1, result.getBytes()).sendToTarget();
+
+                    }
                 } catch (IOException ex) {
                     ex.printStackTrace();
                     // 读取数据失败处理
