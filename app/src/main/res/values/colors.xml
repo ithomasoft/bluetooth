@@ -7,4 +7,13 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="windowBackground">#F5F5F5</color>
+    <color name="driverLine">#99E5E5E5</color>
+    <color name="cardBackground">#FFFFFF</color>
+    <color name="textHint">#99999999</color>
+    <color name="textTitle">#FF1F2428</color>
+    <color name="textSecond">#B31F2428</color>
+    <color name="textContent">#FF999999</color>
+    <color name="textLight">#FFFFFF</color>
+    <color name="textDisable">#4D999999</color>
 </resources>

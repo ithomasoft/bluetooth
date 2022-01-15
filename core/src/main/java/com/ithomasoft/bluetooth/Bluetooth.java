@@ -1,5 +1,6 @@
 package com.ithomasoft.bluetooth;
 
+import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -12,25 +13,31 @@ import android.os.Message;
 import android.util.Log;
 
 import com.ithomasoft.bluetooth.listener.BluetoothConnectListener;
+import com.ithomasoft.bluetooth.listener.BluetoothPairListener;
 import com.ithomasoft.bluetooth.listener.BluetoothStateListener;
 import com.ithomasoft.bluetooth.listener.DiscoveryDevicesListener;
 import com.ithomasoft.bluetooth.listener.IReceiveDataListener;
 import com.ithomasoft.bluetooth.service.BluetoothService;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 public class Bluetooth {
     private Context mContext;
+    private static volatile Bluetooth bluetooth;
 
     private BluetoothAdapter mBluetoothAdapter;
     private String mConnectDeviceName;
     private String mConnectDeviceAddress;
 
-    //listener
+    /**
+     * listener
+     */
     private BluetoothConnectListener mConnectListener = null;
     private BluetoothStateListener mStateListener = null;
+    private BluetoothPairListener mPairListener = null;
     private IReceiveDataListener mReceiveDataListener = null;
     private DiscoveryDevicesListener mDiscoveryDevicesListener = null;
 
@@ -40,7 +47,7 @@ public class Bluetooth {
     private boolean isServiceRunning = false;
 
     private List<BluetoothDevice> mDeviceList = null;
-    private DiscoveryReceiver mReceiver;
+    private BluetoothReceiver mReceiver;
     private boolean isRegister = false;
 
 
@@ -67,9 +74,33 @@ public class Bluetooth {
     public static final String KEY_DEVICE_NAME = "device_name";
     public static final String KEY_DEVICE_ADDRESS = "device_address";
 
-    public Bluetooth(Context context) {
+    private Bluetooth(Context context) {
         this.mContext = context;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        mBTService = new BluetoothService(mHandler);
+        if (mReceiver == null) {
+            mReceiver = new BluetoothReceiver();
+        }
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothDevice.ACTION_FOUND);
+        intentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        mContext.registerReceiver(mReceiver, intentFilter);
+        isRegister = true;
+    }
+
+    public static Bluetooth getInstance() {
+        if (bluetooth == null) {
+            synchronized (Bluetooth.class) {
+                if (bluetooth == null) {
+                    bluetooth = new Bluetooth(getContext());
+                }
+            }
+        }
+        return bluetooth;
     }
 
     /**
@@ -119,13 +150,17 @@ public class Bluetooth {
      * 取消设备发现进程
      */
     public boolean cancelDiscovery() {
-        return mBluetoothAdapter.cancelDiscovery();
+        if (isDiscovering()) {
+            return mBluetoothAdapter.cancelDiscovery();
+        } else {
+            return false;
+        }
     }
 
-    public void setupService() {
-        mBTService = new BluetoothService(mHandler);
+    private synchronized void setupService() {
         if (mBTService.getState() == CONNECT_STATE_NONE) {
             mBTService.start();
+            Log.e("mBTService", "mBTService启动：" + mBTService.toString());
             isServiceRunning = true;
         }
     }
@@ -138,7 +173,7 @@ public class Bluetooth {
         }
     }
 
-    public void stopService() {
+    public synchronized void stopService() {
         if (mBTService != null) {
             mBTService.stop();
             isServiceRunning = false;
@@ -172,9 +207,43 @@ public class Bluetooth {
     }
 
     /**
+     * 配对
+     *
+     * @param device
+     */
+    public void bondDevice(BluetoothDevice device) {
+        try {
+            Method method = BluetoothDevice.class.getMethod("createBond");
+            method.invoke(device);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 取消配对
+     *
+     * @param device
+     * @return
+     */
+    public boolean disBoundDevice(BluetoothDevice device) {
+        if (device == null) {
+            return false;
+        }
+        try {
+            Method removeBondMethod = BluetoothDevice.class.getMethod("removeBond");
+            Boolean returnValue = (Boolean) removeBondMethod.invoke(device);
+            return returnValue.booleanValue();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
      * 断开连接
      */
-    public void disconnect() {
+    public synchronized void disconnect() {
         if (mBTService != null) {
             mBTService.stop();
             isServiceRunning = false;
@@ -188,7 +257,7 @@ public class Bluetooth {
     /**
      * 写入数据
      */
-    public void write(byte[] data) {
+    public synchronized void write(byte[] data) {
         if (mBTService.getState() == CONNECT_STATE_CONNECTED) {
             mBTService.write(data);
         }
@@ -219,6 +288,10 @@ public class Bluetooth {
         this.mStateListener = listener;
     }
 
+    public void setBluePairListener(BluetoothPairListener mPairListener) {
+        this.mPairListener = mPairListener;
+    }
+
     public void setReceiveDataListener(IReceiveDataListener listener) {
         this.mReceiveDataListener = listener;
     }
@@ -229,18 +302,7 @@ public class Bluetooth {
 
     public void setDiscoveryDeviceListener(DiscoveryDevicesListener listener) {
         this.mDiscoveryDevicesListener = listener;
-
         mDeviceList = new ArrayList<>();
-        if (mReceiver == null) {
-            mReceiver = new DiscoveryReceiver();
-        }
-
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothDevice.ACTION_FOUND);
-        intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
-        intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-        mContext.registerReceiver(mReceiver, intentFilter);
-        isRegister = true;
         mDeviceList.clear();
 
         if (isDiscovering()) {
@@ -250,18 +312,74 @@ public class Bluetooth {
         startDiscovery();
     }
 
+    public boolean openBluetooth() {
+        return mBluetoothAdapter.enable();
+    }
+
+    public boolean closeBluetooth() {
+        return mBluetoothAdapter.disable();
+    }
+
     /**
-     * 发现蓝牙设备广播
+     * 蓝牙设备广播
      */
-    public class DiscoveryReceiver extends BroadcastReceiver {
+    public class BluetoothReceiver extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
+            Log.e("BluetoothReceiver", action);
+            if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                int state = device.getBondState();
+                Log.e("BluetoothReceiver", action + "--" + state);
+                if (mPairListener != null) {
+                    switch (state) {
+                        case BluetoothDevice.BOND_NONE:
+                            mPairListener.onPairRemoved(device);
+                            break;
+                        case BluetoothDevice.BOND_BONDING:
+                            mPairListener.onPairing(device);
+                            break;
+                        case BluetoothDevice.BOND_BONDED:
+                            mPairListener.onPairSuccess(device);
+                            break;
+                    }
+                }
+            }
 
             if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
                 if (mDiscoveryDevicesListener != null) {
                     mDiscoveryDevicesListener.startDiscovery();
+                }
+            }
+
+            if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
+                int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, 0);
+                Log.e("BluetoothReceiver", action + "--" + state);
+                switch (state) {
+                    case BluetoothAdapter.STATE_TURNING_ON:
+                        if (mStateListener != null) {
+                            mStateListener.onOpening();
+                        }
+                        break;
+                    case BluetoothAdapter.STATE_TURNING_OFF:
+                        if (mStateListener != null) {
+                            mStateListener.onCloseing();
+                        }
+                        break;
+                    case BluetoothAdapter.STATE_ON:
+                        if (mStateListener != null) {
+                            mStateListener.onOpened();
+                        }
+                        setupService();
+                        break;
+                    case BluetoothAdapter.STATE_OFF:
+                        if (mStateListener != null) {
+                            mStateListener.onClosed();
+                        }
+                        break;
+
                 }
             }
 
@@ -335,4 +453,47 @@ public class Bluetooth {
             }
         }
     };
+
+    private static Context APPLICATION_CONTEXT;
+
+    /**
+     * 初始化context，如果由于不同机型导致反射获取context失败可以在Application调用此方法
+     */
+    public static void init(Context context) {
+        APPLICATION_CONTEXT = context;
+    }
+
+    /**
+     * 反射获取 application context
+     */
+    private static Context getContext() {
+        if (null == APPLICATION_CONTEXT) {
+            try {
+                Application application = (Application) Class.forName("android.app.ActivityThread")
+                        .getMethod("currentApplication")
+                        .invoke(null, (Object[]) null);
+                if (application != null) {
+                    APPLICATION_CONTEXT = application;
+                    return application;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            try {
+                Application application = (Application) Class.forName("android.app.AppGlobals")
+                        .getMethod("getInitialApplication")
+                        .invoke(null, (Object[]) null);
+                if (application != null) {
+                    APPLICATION_CONTEXT = application;
+                    return application;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            throw new IllegalStateException("ContextHolder is not initialed, it is recommend to init with application context.");
+        }
+        return APPLICATION_CONTEXT;
+    }
 }

@@ -253,7 +253,6 @@ public class BluetoothService {
         public ConnectThread(BluetoothDevice device) {
             BluetoothSocket tempSocket = null;
             this.mmDevice = device;
-
             try {
                 tempSocket = device.createRfcommSocketToServiceRecord(UUID_DEVICE_PRINTER);
 
