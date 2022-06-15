@@ -1,5 +1,6 @@
 package com.ithomasoft.bluetooth.demo;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothDevice;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -51,10 +52,6 @@ public class MainActivity extends AppCompatActivity {
         rvDevice.setAdapter(mAdapter);
 
         Bluetooth.getInstance().setBlueStateListener(new BluetoothStateListener() {
-            @Override
-            public void onConnectStateChanged(int state) {
-
-            }
 
             @Override
             public void onOpening() {
@@ -62,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onCloseing() {
+            public void onClosing() {
                 Toast.makeText(MainActivity.this, "关闭蓝牙中", Toast.LENGTH_SHORT).show();
             }
 
@@ -214,13 +211,14 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @SuppressLint("MissingPermission")
     private void unPairDevice(BluetoothDevice bluetoothDevice) {
         if (bluetoothDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
             Bluetooth.getInstance().disBoundDevice(bluetoothDevice);
             Bluetooth.getInstance().disconnect();
         }
     }
-
+    @SuppressLint("MissingPermission")
     private void pairDevice(BluetoothDevice bluetoothDevice) {
         Bluetooth.getInstance().cancelDiscovery();
         if (bluetoothDevice.getBondState() == BluetoothDevice.BOND_NONE) {

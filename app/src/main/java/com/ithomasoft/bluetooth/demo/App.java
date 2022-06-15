@@ -9,7 +9,7 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Bluetooth.init(this);
+        Bluetooth.getInstance().init(this);
     }
 
     @Override

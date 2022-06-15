@@ -119,9 +119,7 @@ public class BluetoothService {
         bundle.putString(Bluetooth.KEY_DEVICE_ADDRESS, device.getAddress());
         message.setData(bundle);
         mHandler.sendMessage(message);
-
         setState(Bluetooth.CONNECT_STATE_CONNECTED);
-
     }
 
     public synchronized void stop() {

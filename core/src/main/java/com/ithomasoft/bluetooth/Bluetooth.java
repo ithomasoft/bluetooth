@@ -1,5 +1,6 @@
 package com.ithomasoft.bluetooth;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+@SuppressLint("MissingPermission")
 public class Bluetooth {
     private Context mContext;
     private static volatile Bluetooth bluetooth;
@@ -81,13 +83,15 @@ public class Bluetooth {
         if (mReceiver == null) {
             mReceiver = new BluetoothReceiver();
         }
-
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(BluetoothDevice.ACTION_FOUND);
         intentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        intentFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        intentFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
         intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
         intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+
         mContext.registerReceiver(mReceiver, intentFilter);
         isRegister = true;
     }
@@ -134,6 +138,7 @@ public class Bluetooth {
     /**
      * 开启远程蓝牙设备扫描: 不需要独自调用，在进行搜索回调中已经被调用
      */
+
     public boolean startDiscovery() {
 
         return mBluetoothAdapter.startDiscovery();
@@ -332,7 +337,6 @@ public class Bluetooth {
             if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 int state = device.getBondState();
-                Log.e("BluetoothReceiver", action + "--" + state);
                 if (mPairListener != null) {
                     switch (state) {
                         case BluetoothDevice.BOND_NONE:
@@ -356,7 +360,6 @@ public class Bluetooth {
 
             if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
                 int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, 0);
-                Log.e("BluetoothReceiver", action + "--" + state);
                 switch (state) {
                     case BluetoothAdapter.STATE_TURNING_ON:
                         if (mStateListener != null) {
@@ -365,7 +368,7 @@ public class Bluetooth {
                         break;
                     case BluetoothAdapter.STATE_TURNING_OFF:
                         if (mStateListener != null) {
-                            mStateListener.onCloseing();
+                            mStateListener.onClosing();
                         }
                         break;
                     case BluetoothAdapter.STATE_ON:
@@ -382,18 +385,32 @@ public class Bluetooth {
 
                 }
             }
-
+            if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                mConnectDeviceName = device.getName();
+                mConnectDeviceAddress = device.getAddress();
+                if (mConnectListener != null) {
+                    mConnectListener.onBTDeviceConnected(mConnectDeviceAddress, mConnectDeviceName);
+                }
+                isConnected = true;
+            }
+            if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                if (mConnectListener != null) {
+                    mConnectListener.onBTDeviceDisconnected();
+                }
+                isConnected = false;
+                mConnectDeviceName = null;
+                mConnectDeviceAddress = null;
+            }
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if (mDiscoveryDevicesListener != null) {
-                    Log.e("haha >>>", "onReceive --- device.toString: " + device.getName() + ":" + device.getAddress());
                     mDiscoveryDevicesListener.discoveryNew(device);
                 }
                 mDeviceList.add(device);
             }
             if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 if (mDiscoveryDevicesListener != null) {
-                    Log.e("haha >>>", "onReceive --- mDeviceList.size() = " + mDeviceList.size());
                     mDiscoveryDevicesListener.discoveryFinish(mDeviceList);
                 }
             }
@@ -425,9 +442,6 @@ public class Bluetooth {
                     isConnected = true;
                     break;
                 case MESSAGE_STATE_CHANGE:
-                    if (mStateListener != null) {
-                        mStateListener.onConnectStateChanged(msg.arg1);
-                    }
                     if (isConnected && msg.arg1 != CONNECT_STATE_CONNECTED) {
                         if (mConnectListener != null) {
                             mConnectListener.onBTDeviceDisconnected();
@@ -459,8 +473,11 @@ public class Bluetooth {
     /**
      * 初始化context，如果由于不同机型导致反射获取context失败可以在Application调用此方法
      */
-    public static void init(Context context) {
+    public void init(Context context) {
         APPLICATION_CONTEXT = context;
+        if (bluetooth.isBluetoothSupported() && bluetooth.isBluetoothEnabled()) {
+            setupService();
+        }
     }
 
     /**

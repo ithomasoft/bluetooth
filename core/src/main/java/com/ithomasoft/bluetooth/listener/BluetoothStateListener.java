@@ -4,10 +4,6 @@ package com.ithomasoft.bluetooth.listener;
  * 蓝牙连接状态改变监听
  */
 public interface BluetoothStateListener {
-    /**
-     * 连接状态改变结果回调
-     */
-    void onConnectStateChanged(int state);
 
     /**
      * 蓝牙打开中回调
@@ -17,7 +13,7 @@ public interface BluetoothStateListener {
     /**
      * 蓝牙关闭中回调
      */
-    void onCloseing();
+    void onClosing();
 
     /**
      * 蓝牙已经打开回调
