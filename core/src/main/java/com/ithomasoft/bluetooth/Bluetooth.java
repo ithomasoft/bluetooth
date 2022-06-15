@@ -375,7 +375,9 @@ public class Bluetooth {
                         if (mStateListener != null) {
                             mStateListener.onOpened();
                         }
-                        setupService();
+                        if (!bluetooth.isServiceRunning) {
+                            setupService();
+                        }
                         break;
                     case BluetoothAdapter.STATE_OFF:
                         if (mStateListener != null) {
@@ -476,7 +478,9 @@ public class Bluetooth {
     public void init(Context context) {
         APPLICATION_CONTEXT = context;
         if (bluetooth.isBluetoothSupported() && bluetooth.isBluetoothEnabled()) {
-            setupService();
+            if (!bluetooth.isServiceRunning) {
+                setupService();
+            }
         }
     }
 
