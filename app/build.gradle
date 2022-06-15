@@ -38,4 +38,5 @@ dependencies {
     implementation project(path: ':core')
     implementation 'com.github.lygttpod:SuperTextView:2.4.6'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
+    implementation 'com.github.getActivity:XXPermissions:13.6'
 }
