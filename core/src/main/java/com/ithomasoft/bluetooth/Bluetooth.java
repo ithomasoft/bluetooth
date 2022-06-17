@@ -51,6 +51,7 @@ public class Bluetooth {
     private List<BluetoothDevice> mDeviceList = null;
     private BluetoothReceiver mReceiver;
     private boolean isRegister = false;
+    private boolean isBroadcastReceiver = false;
 
 
     //定义当前的连接状态
@@ -200,14 +201,13 @@ public class Bluetooth {
      */
     public void connect(String address) {
         BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
-        if (mBTService != null) {
-            mBTService.connect(device);
-        }
+        connect(device);
     }
 
     public void connect(BluetoothDevice device) {
         if (mBTService != null) {
             mBTService.connect(device);
+            isBroadcastReceiver = true;
         }
     }
 
@@ -250,6 +250,7 @@ public class Bluetooth {
      */
     public synchronized void disconnect() {
         if (mBTService != null) {
+            isBroadcastReceiver = false;
             mBTService.stop();
             isServiceRunning = false;
             if (mBTService.getState() == CONNECT_STATE_NONE) {
@@ -388,7 +389,7 @@ public class Bluetooth {
                 }
             }
             if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                if (!isConnected) {
+                if (!isBroadcastReceiver) {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     mConnectDeviceName = device.getName();
                     mConnectDeviceAddress = device.getAddress();
@@ -399,7 +400,7 @@ public class Bluetooth {
                 }
             }
             if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-                if (isConnected) {
+                if (isBroadcastReceiver) {
                     if (mConnectListener != null) {
                         mConnectListener.onBTDeviceDisconnected();
                     }
