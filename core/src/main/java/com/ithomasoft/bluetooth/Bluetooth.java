@@ -388,21 +388,25 @@ public class Bluetooth {
                 }
             }
             if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                mConnectDeviceName = device.getName();
-                mConnectDeviceAddress = device.getAddress();
-                if (mConnectListener != null) {
-                    mConnectListener.onBTDeviceConnected(mConnectDeviceAddress, mConnectDeviceName);
+                if (!isConnected) {
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    mConnectDeviceName = device.getName();
+                    mConnectDeviceAddress = device.getAddress();
+                    if (mConnectListener != null) {
+                        mConnectListener.onBTDeviceConnected(mConnectDeviceAddress, mConnectDeviceName);
+                    }
+                    isConnected = true;
                 }
-                isConnected = true;
             }
             if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-                if (mConnectListener != null) {
-                    mConnectListener.onBTDeviceDisconnected();
+                if (isConnected) {
+                    if (mConnectListener != null) {
+                        mConnectListener.onBTDeviceDisconnected();
+                    }
+                    isConnected = false;
+                    mConnectDeviceName = null;
+                    mConnectDeviceAddress = null;
                 }
-                isConnected = false;
-                mConnectDeviceName = null;
-                mConnectDeviceAddress = null;
             }
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
