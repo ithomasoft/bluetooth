@@ -16,10 +16,10 @@ public class DeviceAdapter extends BaseSectionQuickAdapter<DeviceInfo, BaseViewH
 
     @Override
     protected void convert(BaseViewHolder baseViewHolder, DeviceInfo deviceInfo) {
-        SuperTextView stvDevice = (SuperTextView) baseViewHolder.itemView;
+        SuperTextView stvDevice = baseViewHolder.getView(R.id.root_view);
 
         BluetoothDevice bluetoothDevice = deviceInfo.getBluetoothDevice();
-        stvDevice.setCenterTopString(bluetoothDevice.getName()+"==" + (bluetoothDevice.getBondState() == BluetoothDevice.BOND_BONDED ? "已配对" : "未配对"))
+        stvDevice.setCenterTopString(bluetoothDevice.getName() + "==" + (bluetoothDevice.getBondState() == BluetoothDevice.BOND_BONDED ? "已配对" : "未配对"))
                 .setCenterString(bluetoothDevice.getAddress());
         if (Bluetooth.getInstance().getServiceState() == Bluetooth.CONNECT_STATE_CONNECTED) {
             if (bluetoothDevice.getAddress().equals(Bluetooth.getInstance().getConnectDeviceAddress())) {

@@ -9,12 +9,12 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Bluetooth.getInstance().init(this);
+        Bluetooth.getInstance().init();
     }
 
     @Override
     public void onTerminate() {
-        Bluetooth.getInstance().stopService();
+        Bluetooth.getInstance().unInit();
         super.onTerminate();
     }
 }

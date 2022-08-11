@@ -1,0 +1,2 @@
+-dontwarn com.thomas.bluetooth.**
+-keepattributes *Annotation*

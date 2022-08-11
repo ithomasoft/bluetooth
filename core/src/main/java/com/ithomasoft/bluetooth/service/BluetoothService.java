@@ -1,5 +1,6 @@
 package com.ithomasoft.bluetooth.service;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
@@ -19,6 +20,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
+@SuppressLint("MissingPermission")
 public class BluetoothService {
     private static final String TAG = "BluetoothService";
 
@@ -44,7 +46,6 @@ public class BluetoothService {
 
     public synchronized void setState(int state) {
         Log.i(TAG, "setState: " + mState + "----->" + state);
-
         this.mState = state;
         //连接状态改变
         mHandler.obtainMessage(Bluetooth.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
@@ -65,9 +66,7 @@ public class BluetoothService {
             mConnectedThread.cancel();
             mConnectedThread = null;
         }
-
         setState(Bluetooth.CONNECT_STATE_LISTENER);
-
         if (mAcceptThread == null) {
             mAcceptThread = new AcceptThread();
             mAcceptThread.start();
@@ -87,11 +86,11 @@ public class BluetoothService {
             mConnectedThread.cancel();
             mConnectedThread = null;
         }
-
         mConnectThread = new ConnectThread(device);
         mConnectThread.start();
         setState(Bluetooth.CONNECT_STATE_CONNECTING);
     }
+
 
     public synchronized void connected(BluetoothSocket socket, BluetoothDevice device) {
         if (mConnectThread != null) {
