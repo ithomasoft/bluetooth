@@ -110,14 +110,6 @@ public class BluetoothService {
 
         mConnectedThread = new ConnectedThread(socket);
         mConnectedThread.start();
-
-        //告诉Activity连接成功的蓝牙设备信息
-        Message message = mHandler.obtainMessage(Bluetooth.MESSAGE_DEVICE_INFO);
-        Bundle bundle = new Bundle();
-        bundle.putString(Bluetooth.KEY_DEVICE_NAME, device.getName());
-        bundle.putString(Bluetooth.KEY_DEVICE_ADDRESS, device.getAddress());
-        message.setData(bundle);
-        mHandler.sendMessage(message);
         setState(Bluetooth.CONNECT_STATE_CONNECTED);
     }
 

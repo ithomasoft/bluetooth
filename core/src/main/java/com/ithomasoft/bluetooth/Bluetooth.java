@@ -65,7 +65,6 @@ public class Bluetooth {
     public static final int MESSAGE_STATE_READ = 1;
     public static final int MESSAGE_STATE_WRITE = 2;
     public static final int MESSAGE_STATE_CHANGE = 3;
-    public static final int MESSAGE_DEVICE_INFO = 4;
 
     //Intent请求码
     public static final int REQUEST_CONNECT_BT = 0x111;     //请求连接蓝牙
@@ -409,14 +408,6 @@ public class Bluetooth {
                     break;
                 case MESSAGE_STATE_WRITE:
 
-                    break;
-                case MESSAGE_DEVICE_INFO:
-                    mConnectDeviceName = msg.getData().getString(KEY_DEVICE_NAME);
-                    mConnectDeviceAddress = msg.getData().getString(KEY_DEVICE_ADDRESS);
-                    if (mConnectListener != null) {
-                        mConnectListener.onBTDeviceConnected(mConnectDeviceAddress, mConnectDeviceName);
-                    }
-                    isConnected = true;
                     break;
                 case MESSAGE_STATE_CHANGE:
                     if (isConnected && msg.arg1 != CONNECT_STATE_CONNECTED) {
